@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sennin Account OAuth 2.0 Tester</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--panel:#131722;--panel2:#191f2c;--line:#2b3344;--text:#f3f5f9;--muted:#9ba6ba;--accent:#a9f16c;--bad:#ff7d86;--good:#8be6b0;--blue:#8ab4ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#1a2431 0,transparent 45%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:0 auto;padding:30px 18px 64px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.logo{width:48px;height:48px;border:1px solid #48566b;border-radius:15px;display:grid;place-items:center;font-weight:900;font-size:21px;background:linear-gradient(145deg,#222b3b,#11151e);color:var(--accent)}h1{font-size:clamp(23px,4vw,32px);line-height:1.15;margin:0}.sub{color:var(--muted);margin:6px 0 0}.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--muted);margin-left:auto}
+.notice{border:1px solid #66562e;background:#282315;color:#f5d99a;padding:13px 15px;border-radius:12px;margin:18px 0 22px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.panel{background:color-mix(in srgb,var(--panel) 95%,transparent);border:1px solid var(--line);border-radius:16px;padding:19px;min-width:0}.wide{grid-column:1/-1}h2{font-size:16px;margin:0 0 15px;display:flex;align-items:center;gap:9px}.step{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#263323;color:var(--accent);font-size:12px;font-weight:800}label{display:block;font-size:12px;font-weight:700;color:#c6cede;margin:12px 0 6px}input,textarea,select{width:100%;background:#0c1018;color:var(--text);border:1px solid #343e51;border-radius:9px;padding:11px 12px;font:inherit;outline:none}input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #a9f16c19}input[readonly]{color:#a9b4c7}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.checks{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}.checks label{display:flex;align-items:center;gap:8px;margin:0;font-weight:500}.checks input{width:auto}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}button{border:1px solid #3b465a;border-radius:10px;padding:10px 14px;background:#222a38;color:var(--text);font:700 13px inherit;cursor:pointer;transition:transform .15s,background .15s,border-color .15s}button:hover{transform:translateY(-1px);border-color:#65758f}button.primary{background:var(--accent);color:#10160b;border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}.muted{color:var(--muted);font-size:12px}.status{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;color:var(--muted);overflow-wrap:anywhere}.dot{width:8px;height:8px;border-radius:50%;background:#778399;flex:0 0 auto}.status.good{color:var(--good);border-color:#2b6046}.status.good .dot{background:var(--good)}.status.bad{color:var(--bad);border-color:#67343a}.status.bad .dot{background:var(--bad)}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#090c12;border:1px solid #273044;border-radius:10px;padding:13px;min-height:54px;max-height:300px;overflow:auto;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d6deeb;margin:10px 0 0}.endpoint{font-family:ui-monospace,monospace;font-size:12px;overflow-wrap:anywhere;color:#c3d3ee}.footer{color:var(--muted);font-size:12px;margin-top:20px}.hidden{display:none!important}
+@media(max-width:720px){main{padding:20px 12px 40px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.row{grid-template-columns:1fr}.pill{display:none}.panel{padding:15px}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top"><div class="logo">S</div><div><h1>Sennin Account</h1><p class="sub">OAuth 2.0 接続テスター · 単一HTML</p></div><span class="pill">Authorization Code + PKCE</span></header>
+  <div class="notice"><strong>テスト前に確認：</strong>このHTMLはOAuthクライアントの動作確認用です。<b>client_secretを入力すると、このブラウザ内で使用されます</b>。本番アプリに秘密情報を埋め込まないでください。ローカルの <code>file://</code> で開く場合、認可後に表示されたコールバックURLをこの画面へ貼り付けて続行します。</div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2><span class="step">01</span> OAuth クライアント設定</h2>
+      <label for="gasUrl">認可画面URL（Google Apps Script）</label>
+      <input id="gasUrl" value="https://script.google.com/macros/s/AKfycbx-8Jy0znTuYUylY06nAd2sAGDS35ORb_9Ta22HJzaTnAoU5UAlYaot_LSUhFcEVg/exec" readonly>
+      <label for="clientId">Client ID</label><input id="clientId" autocomplete="off" placeholder="登録済みアプリのClient ID">
+      <label for="clientSecret">Client Secret（トークン交換で必要な場合）</label><input id="clientSecret" type="password" autocomplete="off" placeholder="登録済みアプリのClient Secret">
+      <label for="redirectUri">登録済み Redirect URI（完全一致）</label><input id="redirectUri" placeholder="例：https://example.com/oauth/callback">
+      <div class="row">
+        <div><label for="scope">Scope</label><input id="scope" value="profile email points:read"></div>
+        <div><label for="apiBase">トークン/API URL（Cloudflare Worker）</label><input id="apiBase" value="https://sennin-account-api.xianrendesu.workers.dev"></div>
+      </div>
+      <p class="muted">Redirect URIは開発者設定で登録した値と完全一致させてください。file:// のページURLをRedirect URIとして登録するのは通常できません。</p>
+      <div class="actions"><button class="primary" id="startBtn">認可を開始する ↗</button><button id="clearBtn">入力をクリア</button></div>
+      <div id="startStatus" class="status"><span class="dot"></span><span>設定を入力して認可を開始してください。</span></div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="step">02</span> 認可コールバック</h2>
+      <p class="muted">認可画面で許可したあと、Redirect URIへ戻ってきたURL全体を貼り付けます。ページが自動で戻ってきた場合は下の欄に反映されます。</p>
+      <label for="callbackUrl">コールバックURL または認可コード</label>
+      <textarea id="callbackUrl" rows="4" placeholder="https://example.com/oauth/callback?code=...&state=..."></textarea>
+      <div class="actions"><button class="primary" id="parseBtn">コールバックを検証</button><button id="useCurrentBtn">現在のURLを読み込む</button></div>
+      <div id="callbackStatus" class="status"><span class="dot"></span><span>まだコールバックを検証していません。</span></div>
+      <label>検出した値</label><pre id="callbackDetails">state: —\ncode: —</pre>
+    </section>
+
+    <section class="panel">
+      <h2><span class="step">03</span> 認可コードをトークンに交換</h2>
+      <p class="muted">PKCE verifierと認可コードを使って /oauth/token を呼び出します。ブラウザのCORS設定やサーバー側のclient_secret検証により失敗する場合があります。</p>
+      <label for="code">Authorization Code</label><input id="code" placeholder="認可コードがここに入ります">
+      <label for="verifier">PKCE Code Verifier（認可開始時に自動生成）</label><input id="verifier" readonly placeholder="認可開始前">
+      <div class="actions"><button class="primary" id="tokenBtn" disabled>トークン交換</button></div>
+      <div id="tokenStatus" class="status"><span class="dot"></span><span>認可コードを検証すると実行できます。</span></div>
+      <pre id="tokenOutput">トークン応答はまだありません。</pre>
+    </section>
+
+    <section class="panel">
+      <h2><span class="step">04</span> UserInfo を確認</h2>
+      <p class="muted">アクセストークン取得後、ユーザー情報APIを呼び出します。</p>
+      <label for="accessToken">Access Token</label><input id="accessToken" type="password" autocomplete="off" placeholder="トークン交換後に自動入力">
+      <div class="actions"><button class="primary" id="userinfoBtn" disabled>UserInfo を取得</button><button id="clearTokenBtn">トークンを消去</button></div>
+      <div id="userStatus" class="status"><span class="dot"></span><span>アクセストークン待ちです。</span></div>
+      <pre id="userOutput">UserInfo応答はまだありません。</pre>
+    </section>
+
+    <section class="panel wide">
+      <h2><span class="step">i</span> 実行ログ / よくある失敗</h2>
+      <pre id="log">準備完了。認可開始 → 同意 → コールバック検証 → トークン交換 → UserInfo の順に試してください。</pre>
+      <p class="muted">401/invalid_client：Client ID・Secretを確認。invalid_grant：認可コードの期限切れ・再利用・PKCE不一致を確認。redirect_uri_mismatch：登録値と入力値の完全一致を確認。CORSエラー：Worker側でこのHTMLのオリジンを許可するか、同じオリジンのテストページで試してください。</p>
+    </section>
+  </div>
+  <p class="footer">テストツールは入力したClient Secretやトークンをサーバーへ保存しません。ブラウザの開発者ツール・通信ログには値が見える可能性があります。テスト終了後は「トークンを消去」を使用してください。</p>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx-8Jy0znTuYUylY06nAd2sAGDS35ORb_9Ta22HJzaTnAoU5UAlYaot_LSUhFcEVg/exec';
+  let savedState = '';
+  let verifier = '';
+  let tokenData = null;
+
+  function status(id, message, kind='') {
+    const el = $(id); el.className = 'status' + (kind ? ' ' + kind : '');
+    el.replaceChildren();
+    const dot = document.createElement('span'); dot.className = 'dot';
+    const text = document.createElement('span'); text.textContent = message;
+    el.append(dot, text);
+  }
+  function log(message) {
+    const now = new Date().toLocaleTimeString();
+    $('log').textContent = `[${now}] ${message}\n` + $('log').textContent;
+  }
+  function base() { return $('apiBase').value.trim().replace(/\/+$/, ''); }
+  function randomBytes(n) {
+    const b = new Uint8Array(n); crypto.getRandomValues(b); return b;
+  }
+  function b64url(bytes) {
+    let s = ''; bytes.forEach(b => s += String.fromCharCode(b));
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  async function sha256(text) {
+    return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));
+  }
+  function encodeForm(obj) {
+    const p = new URLSearchParams();
+    Object.entries(obj).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') p.set(k, String(v)); });
+    return p;
+  }
+  function pretty(obj) {
+    try { return JSON.stringify(obj, (k,v) => /access_token|refresh_token|client_secret/i.test(k) ? '[REDACTED IN LOG]' : v, 2); }
+    catch { return String(obj); }
+  }
+  async function readResponse(response) {
+    const raw = await response.text();
+    let data; try { data = JSON.parse(raw); } catch { data = {raw: raw.slice(0,8000)}; }
+    return {httpStatus: response.status, ok: response.ok, data};
+  }
+  function validConfig() {
+    if (!$('clientId').value.trim()) throw new Error('Client IDを入力してください。');
+    if (!$('redirectUri').value.trim()) throw new Error('登録済みRedirect URIを入力してください。');
+    if (!/^https?:\/\//i.test($('redirectUri').value.trim())) throw new Error('Redirect URIは登録済みのhttp(s) URLを入力してください。');
+  }
+
+  $('startBtn').addEventListener('click', async () => {
+    try {
+      validConfig();
+      if (!crypto?.subtle) throw new Error('このブラウザではWeb Cryptoが利用できません。HTTPSのページか対応ブラウザで開いてください。');
+      verifier = b64url(randomBytes(32));
+      const challenge = b64url(await sha256(verifier));
+      savedState = b64url(randomBytes(24));
+      $('verifier').value = verifier;
+      const params = {
+        response_type: 'code',
+        client_id: $('clientId').value.trim(),
+        redirect_uri: $('redirectUri').value.trim(),
+        scope: $('scope').value.trim() || 'profile email',
+        state: savedState,
+        code_challenge: challenge,
+        code_challenge_method: 'S256'
+      };
+      // The GAS deployment is the configured authorization entry point.
+      const url = new URL(GAS_URL);
+      Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+      status('startStatus', '認可画面を新しいタブで開きます。state/PKCEを保存しました。', 'good');
+      log('認可リクエストを作成しました（stateとPKCE S256）。');
+      window.open(url.toString(), '_blank', 'noopener');
+    } catch (e) { status('startStatus', e.message || String(e), 'bad'); log('認可開始エラー: ' + (e.message || e)); }
+  });
+
+  function parseCallback() {
+    const raw = $('callbackUrl').value.trim();
+    if (!raw) throw new Error('コールバックURLまたは認可コードを貼り付けてください。');
+    let code = '', state = '', error = '', errorDescription = '';
+    if (/^https?:\/\//i.test(raw)) {
+      const u = new URL(raw);
+      code = u.searchParams.get('code') || '';
+      state = u.searchParams.get('state') || '';
+      error = u.searchParams.get('error') || '';
+      errorDescription = u.searchParams.get('error_description') || '';
+    } else {
+      const p = new URLSearchParams(raw.includes('=') ? raw.replace(/^\?/, '') : '');
+      if (p.has('code') || p.has('state') || p.has('error')) {
+        code = p.get('code') || ''; state = p.get('state') || '';
+        error = p.get('error') || ''; errorDescription = p.get('error_description') || '';
+      } else { code = raw; }
+    }
+    $('code').value = code;
+    $('callbackDetails').textContent = `state: ${state || '—'}\ncode: ${code ? code.slice(0,12) + (code.length > 12 ? '…' : '') : '—'}\nerror: ${error || '—'}${errorDescription ? '\nerror_description: ' + errorDescription : ''}`;
+    if (error) throw new Error(`認可エラー: ${error}${errorDescription ? ' — ' + errorDescription : ''}`);
+    if (!code) throw new Error('URL内にcodeが見つかりません。');
+    if (!savedState) throw new Error('この画面で認可開始していないためstateを検証できません。先に認可開始してください。');
+    if (state !== savedState) throw new Error('stateが一致しません。CSRF対策のためトークン交換を中止しました。認可を最初からやり直してください。');
+    status('callbackStatus', '認可コードとstateを確認しました。', 'good');
+    $('tokenBtn').disabled = false;
+    log('コールバック検証成功。state一致。');
+    return {code, state};
+  }
+  $('parseBtn').addEventListener('click', () => {
+    try { parseCallback(); }
+    catch (e) { status('callbackStatus', e.message || String(e), 'bad'); $('tokenBtn').disabled = true; log('コールバック検証エラー: ' + (e.message || e)); }
+  });
+  $('useCurrentBtn').addEventListener('click', () => {
+    $('callbackUrl').value = location.href;
+    try { parseCallback(); } catch (e) { status('callbackStatus', e.message || String(e), 'bad'); }
+  });
+
+  $('tokenBtn').addEventListener('click', async () => {
+    try {
+      const {code} = parseCallback();
+      if (!verifier) throw new Error('PKCE verifierがありません。認可開始からやり直してください。');
+      status('tokenStatus', 'トークンエンドポイントにリクエスト中…');
+      const form = encodeForm({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: $('redirectUri').value.trim(),
+        client_id: $('clientId').value.trim(),
+        client_secret: $('clientSecret').value,
+        code_verifier: verifier
+      });
+      const res = await fetch(base() + '/oauth/token', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: form.toString()
+      });
+      const result = await readResponse(res);
+      $('tokenOutput').textContent = pretty(result);
+      if (!result.ok || !result.data.access_token) {
+        status('tokenStatus', `トークン交換に失敗しました（HTTP ${result.httpStatus}）。応答内容を確認してください。`, 'bad');
+        log(`トークン交換失敗 HTTP ${result.httpStatus}: ${pretty(result.data)}`);
+        return;
+      }
+      tokenData = result.data;
+      $('accessToken').value = result.data.access_token;
+      $('userinfoBtn').disabled = false;
+      status('tokenStatus', 'アクセストークンを取得しました。', 'good');
+      log('トークン交換成功。UserInfoを確認できます。');
+    } catch (e) {
+      const msg = e instanceof TypeError ? 'ネットワーク/CORSエラーの可能性があります。WorkerのCORS設定とURLを確認してください。' : (e.message || String(e));
+      status('tokenStatus', msg, 'bad'); log('トークン交換エラー: ' + msg);
+    }
+  });
+
+  $('userinfoBtn').addEventListener('click', async () => {
+    try {
+      const token = $('accessToken').value.trim();
+      if (!token) throw new Error('Access Tokenを入力してください。');
+      status('userStatus', 'UserInfoを取得中…');
+      const res = await fetch(base() + '/oauth/userinfo', {
+        method: 'GET', headers: {'Authorization': 'Bearer ' + token, 'Accept':'application/json'}
+      });
+      const result = await readResponse(res);
+      $('userOutput').textContent = pretty(result);
+      if (!result.ok) {
+        status('userStatus', `UserInfo取得に失敗しました（HTTP ${result.httpStatus}）。`, 'bad');
+        log(`UserInfo失敗 HTTP ${result.httpStatus}: ${pretty(result.data)}`);
+      } else {
+        status('userStatus', 'UserInfoの取得に成功しました。', 'good');
+        log('UserInfo取得成功。');
+      }
+    } catch (e) {
+      const msg = e instanceof TypeError ? 'ネットワーク/CORSエラーの可能性があります。WorkerのCORS設定とURLを確認してください。' : (e.message || String(e));
+      status('userStatus', msg, 'bad'); log('UserInfoエラー: ' + msg);
+    }
+  });
+
+  $('clearTokenBtn').addEventListener('click', () => {
+    $('accessToken').value = ''; $('tokenOutput').textContent = 'トークン応答を消去しました。';
+    $('userOutput').textContent = 'UserInfo応答を消去しました。'; tokenData = null;
+    $('userinfoBtn').disabled = true; status('userStatus', 'トークンを消去しました。');
+  });
+  $('clearBtn').addEventListener('click', () => {
+    ['clientId','clientSecret','redirectUri'].forEach(id => $(id).value = '');
+    $('scope').value = 'profile email points:read';
+    $('callbackUrl').value = ''; $('code').value = ''; $('verifier').value = '';
+    $('accessToken').value = ''; savedState = ''; verifier = ''; tokenData = null;
+    $('tokenBtn').disabled = true; $('userinfoBtn').disabled = true;
+    $('callbackDetails').textContent = 'state: —\ncode: —'; $('tokenOutput').textContent = 'トークン応答はまだありません。';
+    $('userOutput').textContent = 'UserInfo応答はまだありません。';
+    status('startStatus','入力をクリアしました。'); status('callbackStatus','まだコールバックを検証していません。');
+    status('tokenStatus','認可コードを検証すると実行できます。'); status('userStatus','アクセストークン待ちです。');
+    log('入力と一時データをクリアしました。');
+  });
+
+  // If hosted at the registered callback URL, parse the returned query automatically.
+  if (location.search) {
+    $('callbackUrl').value = location.href;
+    log('URLにクエリ文字列を検出しました。認可開始した同じタブで戻ってきた場合はコールバックを検証してください。');
+  }
+})();
+</script>
+</body>
+</html>
