@@ -79,6 +79,32 @@ main{max-width:1040px;margin:0 auto;padding:30px 18px 64px}.top{display:flex;ali
   let savedState = '';
   let verifier = '';
   let tokenData = null;
+  const FLOW_KEY = 'sennin_oauth_flow_v1';
+
+  function saveFlow() {
+    // Keep only short-lived PKCE/state and non-secret client settings across the redirect/reload.
+    // Never persist client_secret or access/refresh tokens here.
+    try { localStorage.setItem(FLOW_KEY, JSON.stringify({
+      state: savedState, verifier, clientId: $('clientId').value.trim(),
+      redirectUri: $('redirectUri').value.trim(), scope: $('scope').value.trim(), apiBase: $('apiBase').value.trim(),
+      createdAt: Date.now()
+    })); } catch (_) {}
+  }
+  function restoreFlow() {
+    try {
+      const f = JSON.parse(localStorage.getItem(FLOW_KEY) || 'null');
+      if (!f || !f.createdAt || Date.now() - f.createdAt > 10 * 60 * 1000) {
+        localStorage.removeItem(FLOW_KEY); return;
+      }
+      savedState = typeof f.state === 'string' ? f.state : '';
+      verifier = typeof f.verifier === 'string' ? f.verifier : '';
+      if (f.clientId) $('clientId').value = f.clientId;
+      if (f.redirectUri) $('redirectUri').value = f.redirectUri;
+      if (f.scope) $('scope').value = f.scope;
+      if (f.apiBase) $('apiBase').value = f.apiBase;
+      $('verifier').value = verifier;
+    } catch (_) {}
+  }
 
   function status(id, message, kind='') {
     const el = $(id); el.className = 'status' + (kind ? ' ' + kind : '');
@@ -130,6 +156,7 @@ main{max-width:1040px;margin:0 auto;padding:30px 18px 64px}.top{display:flex;ali
       const challenge = b64url(await sha256(verifier));
       savedState = b64url(randomBytes(24));
       $('verifier').value = verifier;
+      saveFlow();
       const params = {
         response_type: 'code',
         client_id: $('clientId').value.trim(),
@@ -254,6 +281,7 @@ main{max-width:1040px;margin:0 auto;padding:30px 18px 64px}.top{display:flex;ali
     $('scope').value = 'profile email points:read';
     $('callbackUrl').value = ''; $('code').value = ''; $('verifier').value = '';
     $('accessToken').value = ''; savedState = ''; verifier = ''; tokenData = null;
+    try { localStorage.removeItem(FLOW_KEY); } catch (_) {}
     $('tokenBtn').disabled = true; $('userinfoBtn').disabled = true;
     $('callbackDetails').textContent = 'state: —\ncode: —'; $('tokenOutput').textContent = 'トークン応答はまだありません。';
     $('userOutput').textContent = 'UserInfo応答はまだありません。';
@@ -262,10 +290,12 @@ main{max-width:1040px;margin:0 auto;padding:30px 18px 64px}.top{display:flex;ali
     log('入力と一時データをクリアしました。');
   });
 
-  // If hosted at the registered callback URL, parse the returned query automatically.
+  // Restore state/PKCE before parsing the callback. Render/hosted callback redirects reload the page,
+  // so in-memory variables alone are insufficient. localStorage is shared across same-origin tabs.
+  restoreFlow();
   if (location.search) {
     $('callbackUrl').value = location.href;
-    log('URLにクエリ文字列を検出しました。認可開始した同じタブで戻ってきた場合はコールバックを検証してください。');
+    log('URLにクエリ文字列を検出しました。保存済みstate/PKCEを読み込みました。「コールバックを検証」を押してください。');
   }
 })();
 </script>
